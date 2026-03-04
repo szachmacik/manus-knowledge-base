@@ -1,0 +1,6 @@
+# Pliki do ignorowania
+.env
+.env.*
+*.key
+node_modules/
+secrets/
