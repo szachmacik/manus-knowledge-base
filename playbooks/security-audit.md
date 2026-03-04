@@ -104,3 +104,45 @@ Security Audit Report — [projekt] — [data]
 
 Audit Engine z `ai-control-center` może automatyzować kroki 2, 4, 5, 7.
 Patrz: `patterns/backend/audit-engine.md`
+
+---
+
+## Lekcje z projektu Zoney (2026-03-04)
+
+### Znalezione i naprawione problemy
+
+| Endpoint | Problem | Fix |
+|----------|---------|-----|
+| `/api/nip-lookup` | Brak rate limiting — publiczny endpoint podatny na nadużycia | Dodano `checkRateLimit(10 req/min)` |
+| `/api/scrape` | Brak auth — każdy mógł wywołać SSRF przez scraping | Dodano `requireAdmin()` |
+| `/api/telemetry` | Brak rate limiting i walidacji rozmiaru payload | Dodano `checkRateLimit(30/min)` + `Array.isArray && length <= 100` |
+| `next.config.mjs` | `ignoreBuildErrors: true` — TypeScript wyłączony w buildzie | Włączono po naprawieniu wszystkich 9 błędów TS |
+
+### Wzorzec: Rate Limiting dla publicznych endpointów
+
+```typescript
+// Każdy publiczny endpoint powinien mieć rate limiting
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+
+export async function GET(request: NextRequest) {
+    const clientIp = getClientIp(request);
+    const rl = checkRateLimit(`endpoint-name:${clientIp}`, { limit: 10, windowSecs: 60 });
+    if (!rl.success) {
+        return NextResponse.json({ error: "Too many requests" }, {
+            status: 429,
+            headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) }
+        });
+    }
+    // ... reszta handlera
+}
+```
+
+### Uwaga: npm vs pnpm audit
+
+Projekt używa `npm` — używaj `npm audit` zamiast `pnpm audit`. Po usunięciu devDependencies (np. `@cloudflare/next-on-pages`) sprawdź czy nie downgrade'uje kluczowych pakietów (Next.js!). Zawsze weryfikuj wersję po `npm uninstall`.
+
+### Next.js wersjonowanie
+
+- Next.js 15.x → bezpieczna linia (15.5.12 = 0 CVE)
+- Next.js 16.x → breaking changes: `middleware` → `proxy`, inne API
+- Nie używaj `npm audit fix --force` dla Next.js — zainstaluje 16.x z breaking changes

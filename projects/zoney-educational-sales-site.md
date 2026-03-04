@@ -107,3 +107,33 @@ nohup npm run start -- -p 3000 > /tmp/zoney.log 2>&1 &
 - GitHub: https://github.com/szachmacik/educational-sales-site
 - Manus Space (tymczasowy): https://3000-icrwly41zhl0vfggxuqme-ba5aa59a.us1.manus.computer/pl
 - Cloudflare Pages project: zoney-kamilaenglish.pages.dev
+
+---
+
+## Audyt bezpieczeństwa i ulepszenia (2026-03-04, sesja 2)
+
+### Wyniki audytu
+
+| Kategoria | Wynik |
+|-----------|-------|
+| Sekrety w repozytorium | ✅ Brak |
+| Security headers | ✅ Pełne (CSP, HSTS, X-Frame, X-Content-Type, Permissions-Policy) |
+| Auth na admin routes | ✅ `requireAdmin()` na wszystkich `/api/admin/*` |
+| Rate limiting | ✅ Login (5/min), NIP lookup (10/min), Telemetry (30/min) |
+| npm audit | ✅ 0 vulnerabilities (po aktualizacji Next.js 15.5.12) |
+| TypeScript strict | ✅ `ignoreBuildErrors: false` — wszystkie błędy naprawione |
+| ESLint | ✅ `ignoreDuringBuilds: false` — re-enabled |
+
+### Naprawione w tej sesji
+
+1. **`/api/nip-lookup`** — dodano rate limiting (10 req/min per IP)
+2. **`/api/scrape`** — dodano `requireAdmin()` (zapobiega SSRF)
+3. **`/api/telemetry`** — dodano rate limiting (30/min) + walidacja payload
+4. **`next.config.mjs`** — włączono TypeScript i ESLint checking
+5. **Next.js** — zaktualizowano do 15.5.12 (0 CVE), usunięto `@cloudflare/next-on-pages`
+
+### Status deploymentu
+
+- **Coolify (kamila.ofshore.dev)** — ✅ Działa, SSL, wszystkie security headers aktywne
+- **kamilaenglish.ofshore.dev** — DNS skonfigurowany, czeka na deployment (wymaga VPS/Coolify)
+- **Build:** 950 stron, 0 błędów TypeScript, 0 błędów ESLint, 0 vulnerabilities
