@@ -1,15 +1,28 @@
 # Projekt: Zoney — Educational Sales Site
 
 **Repozytorium:** [szachmacik/educational-sales-site](https://github.com/szachmacik/educational-sales-site)  
-**Klient:** Kamila (kamila.ofshore.dev)  
-**Status:** Aktywny — produkcja na Manus Space, docelowo `kamilaenglish.ofshore.dev`  
-**Stack:** Next.js 15, TypeScript, TailwindCSS, Supabase, Sonner, Lucide React
+**Klient:** Kamila  
+**Status:** Produkcja — `kamila.ofshore.dev` (Coolify), `kamilaenglish.ofshore.dev` DNS gotowy  
+**Stack:** Next.js 15.5.12, TypeScript strict, TailwindCSS, Supabase, Stripe, Vitest  
+**Ostatnia aktualizacja:** 2026-03-06
 
 ---
 
 ## Opis projektu
 
-Sklep edukacyjny dla Zoney — platforma sprzedaży materiałów edukacyjnych (SpeakBook, Mega Pack, kursy językowe). Obsługuje 25 języków przez i18n middleware, zawiera panel admina, dashboard ucznia, system płatności i koszyk.
+Sklep edukacyjny Zoney — platforma sprzedaży materiałów do nauki angielskiego (SpeakBook, Mega Pack, kursy). Obsługuje 25 języków przez custom i18n middleware, zawiera panel admina, dashboard ucznia, system płatności Stripe, koszyk i system poleceń.
+
+## Metryki jakości (2026-03-06)
+
+| Metryka | Wartość |
+|---------|---------|
+| Build | ✓ Pass (950 stron) |
+| TypeScript errors | 0 (strict mode) |
+| ESLint errors | 0 |
+| @ts-ignore | 0 |
+| npm CVE | 0 |
+| Testy Vitest | 87/87 (100%) |
+| Obrazy | 7 MB (było 80 MB, −91%) |
 
 ## Architektura
 
@@ -30,110 +43,134 @@ lib/
   product-service.ts  # Serwis produktów z filtrowaniem
   translations/       # Tłumaczenia dla 25 języków
   cart-context.tsx    # Koszyk (React Context)
-middleware.ts         # i18n routing + auth protection
+hooks/              # 7 custom hooks
+__tests__/          # 87 testów Vitest
+middleware.ts       # i18n routing + auth protection
 ```
 
-## Naprawione błędy (2026-03-04)
+## Historia napraw i ulepszeń
 
-### 1. TypeScript — brakujące importy i zmienne
+### TypeScript (2026-03-04)
 
 | Plik | Problem | Rozwiązanie |
 |------|---------|-------------|
 | `components/course/quiz-view.tsx` | `t` undefined | Dodano `const { t } = useLanguage()` |
 | `components/in-app-notifications.tsx` | `t` undefined | Dodano `const { t } = useLanguage()` |
-| `components/language-switcher.tsx` | `t` missing from destructuring | Dodano `t` do `const { t, language } = useLanguage()` |
-| `components/legal/cookie-consent-bar.tsx` | `ShieldCheck`, `Settings` not imported | Dodano do importu z `lucide-react` |
-| `components/products.tsx` | Konflikt `toast` (sonner vs useToast) | Zmieniono na `toast as toastSonner` |
-| `components/product/product-detail-view.tsx` | Konflikt `toast` (sonner vs useToast) | Zmieniono na `toast as toastSonner` |
+| `components/language-switcher.tsx` | `t` missing | Dodano `t` do destructuring |
+| `components/legal/cookie-consent-bar.tsx` | `ShieldCheck`, `Settings` not imported | Dodano do importu |
+| `components/products.tsx` | Konflikt `toast` (sonner vs useToast) | `toast as toastSonner` |
+| `components/product/product-detail-view.tsx` | Konflikt `toast` | `toast as toastSonner` |
 
-### 2. Bezpieczeństwo — Next.js CVE
+### Bezpieczeństwo (2026-03-04 → 2026-03-05)
 
-- **Problem:** Next.js 15.3.3 miał podatność bezpieczeństwa (CVE)
-- **Rozwiązanie:** Zaktualizowano do Next.js 15.5.12
+- Next.js 15.3.3 → 15.5.12 (CVE fix)
+- Rate limiting: `/api/nip-lookup` (10/min), `/api/telemetry` (30/min) via upstash/ratelimit
+- Admin auth: `requireAdmin()` na `/api/scrape`
+- Input sanitization w contact API
+- Security headers w `next.config.mjs` (CSP, HSTS, X-Frame-Options)
 
-### 3. Wydajność — rozmiar obrazów
+### Wydajność (2026-03-04)
 
-- **Problem:** Obrazy produktów PNG ważyły łącznie 80MB (niektóre po 4-5MB)
-- **Rozwiązanie:** Konwersja PNG → JPEG (quality=85, max 1200px), redukcja 80MB → 7MB (91%)
-- **Skrypt:** `/home/ubuntu/optimize_images.py`
+- PNG → JPEG (quality=85, max 1200px): 80MB → 7MB (−91%)
+- Lazy-loaded marketing scripts (FOMO, exit-intent)
+- Skrypt: `optimize_images.py`
 
-### 4. UX — scroll-reveal niewidoczny przez proxy
+### UX / Proxy fix (2026-03-04)
 
-- **Problem:** `useScrollReveal` hook startował z `isVisible: false` — elementy były niewidoczne w środowisku proxy Manus
-- **Rozwiązanie:** Zmieniono stan początkowy na `isVisible: true` w `hooks/use-intersection.ts`
+- `useScrollReveal` startował z `isVisible: false` — niewidoczny przez proxy Manus
+- Rozwiązanie: `isVisible: true` jako stan początkowy w `hooks/use-intersection.ts`
+
+### SEO (2026-03-05)
+
+- Organization + WebSite JSON-LD schema w `app/layout.tsx`
+- Dynamiczny `sitemap.ts` (950 URL)
+- Naprawiony `robots.txt`
+
+### Accessibility (2026-03-05)
+
+- Skip-to-content link
+- aria-labels na interaktywnych elementach
+- WCAG 2.1 AA compliance
+
+### Testy Vitest (2026-03-06)
+
+- 87 testów: rate-limit, slugify, currency, order-schema, utils, hooks
+- Konfiguracja: `vitest.config.ts` z path aliases
+
+### Loading/Error states (2026-03-06)
+
+- 76 plików (loading.tsx + error.tsx) dla 38 stron
+- Generator: `generate-loading-error.py`
+
+### Custom hooks (2026-03-06)
+
+- `useDebounce`, `useLocalStorage`, `useMediaQuery`
+- `useOnClickOutside`, `useIntersectionObserver`
+- `useKeyPress`, `useCountdown`
 
 ## Konfiguracja środowiskowa
-
-Projekt wymaga pliku `.env.local` z:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
 SUPABASE_SERVICE_ROLE_KEY=xxx
-NEXT_PUBLIC_APP_URL=https://kamilaenglish.ofshore.dev
+NEXT_PUBLIC_BASE_URL=https://kamila.ofshore.dev
+STRIPE_SECRET_KEY=sk_live_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+RESEND_API_KEY=re_xxx
+UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
+UPSTASH_REDIS_REST_TOKEN=xxx
 ```
 
 ## Deployment
 
-### Manus Space (tymczasowy)
+### Coolify (produkcja) — kamila.ofshore.dev ✅
+
+Projekt wymaga SSR (middleware i18n + auth) — nie może być static export. Cloudflare Pages nie obsługuje.
+
+### kamilaenglish.ofshore.dev — DNS gotowy, czeka na Coolify
+
+DNS A record skonfigurowany. Właściciel musi dodać nową aplikację w Coolify z tego samego repo.
+
+### Lokalne uruchomienie
+
 ```bash
 cd /home/ubuntu/zoney-shop
-npm run build
-nohup npm run start -- -p 3000 > /tmp/zoney.log 2>&1 &
+npm install
+npm run dev   # http://localhost:3000
+npm run build # produkcja
+npm test      # 87 testów
 ```
 
-### Cloudflare Pages (docelowy)
-**Problem:** Projekt używa `middleware.ts` z Node.js APIs (cookies, headers) — wymaga SSR, nie można deployować jako static export.
+## Ważne wzorce do zapamiętania
 
-**Opcje:**
-1. **Cloudflare Workers + next-on-pages** — wymaga `runtime = 'edge'` we wszystkich trasach, ale projekt używa `fs/promises` i `path` w API routes
-2. **GitHub Actions + wrangler** — wymaga scope `workflows` w GitHub token (Manus App nie ma)
-3. **Serwer VPS z nginx** — najlepsza opcja dla pełnego SSR
+### Toast conflict (Sonner vs useToast)
 
-### Podpięcie domeny kamilaenglish.ofshore.dev
-1. Uruchom serwer na VPS (port 3000)
-2. Skonfiguruj nginx jako reverse proxy
-3. W Cloudflare DNS: dodaj A record `kamilaenglish` → IP serwera
-4. Włącz Cloudflare proxy (pomarańczowa chmurka)
+```typescript
+// Gdy oba są importowane w tym samym pliku:
+import { toast as toastSonner } from 'sonner'
+import { useToast } from '@/hooks/use-toast'
+// Użyj toastSonner() zamiast toast()
+```
 
-## Znane ograniczenia
+### i18n middleware pattern
 
-- Projekt **nie obsługuje** Cloudflare Pages Direct Upload (wymaga SSR)
-- Wrangler CLI nie działa przez proxy Manus (blokada sieci)
-- GitHub App Manus nie ma scope `workflows` — nie można tworzyć GitHub Actions przez CLI
+Middleware w `middleware.ts` obsługuje routing dla 25 języków. Każda strona jest pod `/[lang]/...`. Domyślny język (pl) nie ma prefiksu w URL.
+
+### Rate limiting pattern
+
+```typescript
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, '1 m'),
+})
+```
 
 ## Linki
 
+- Live: https://kamila.ofshore.dev
 - GitHub: https://github.com/szachmacik/educational-sales-site
-- Manus Space (tymczasowy): https://3000-icrwly41zhl0vfggxuqme-ba5aa59a.us1.manus.computer/pl
-- Cloudflare Pages project: zoney-kamilaenglish.pages.dev
-
----
-
-## Audyt bezpieczeństwa i ulepszenia (2026-03-04, sesja 2)
-
-### Wyniki audytu
-
-| Kategoria | Wynik |
-|-----------|-------|
-| Sekrety w repozytorium | ✅ Brak |
-| Security headers | ✅ Pełne (CSP, HSTS, X-Frame, X-Content-Type, Permissions-Policy) |
-| Auth na admin routes | ✅ `requireAdmin()` na wszystkich `/api/admin/*` |
-| Rate limiting | ✅ Login (5/min), NIP lookup (10/min), Telemetry (30/min) |
-| npm audit | ✅ 0 vulnerabilities (po aktualizacji Next.js 15.5.12) |
-| TypeScript strict | ✅ `ignoreBuildErrors: false` — wszystkie błędy naprawione |
-| ESLint | ✅ `ignoreDuringBuilds: false` — re-enabled |
-
-### Naprawione w tej sesji
-
-1. **`/api/nip-lookup`** — dodano rate limiting (10 req/min per IP)
-2. **`/api/scrape`** — dodano `requireAdmin()` (zapobiega SSRF)
-3. **`/api/telemetry`** — dodano rate limiting (30/min) + walidacja payload
-4. **`next.config.mjs`** — włączono TypeScript i ESLint checking
-5. **Next.js** — zaktualizowano do 15.5.12 (0 CVE), usunięto `@cloudflare/next-on-pages`
-
-### Status deploymentu
-
-- **Coolify (kamila.ofshore.dev)** — ✅ Działa, SSL, wszystkie security headers aktywne
-- **kamilaenglish.ofshore.dev** — DNS skonfigurowany, czeka na deployment (wymaga VPS/Coolify)
-- **Build:** 950 stron, 0 błędów TypeScript, 0 błędów ESLint, 0 vulnerabilities
+- Google Drive: https://drive.google.com/open?id=1Et3ALwxyJfVFF-sxCMRanZcWGJ_0sqAt
+- Commit: e3ad273
