@@ -1,94 +1,82 @@
 # Manus Knowledge Base
 
-> Centralne repozytorium wiedzy dla wszystkich projektów zarządzanych przez Manus AI.
-> Zawiera sprawdzone wzorce, snippety, playbooki i rejestr projektów — **bez żadnych sekretów ani kluczy API**.
+> Centralne repozytorium wiedzy dla wszystkich projektów ofshore.dev.
 
-## Dla Manus AI — Jak Używać Tego Repozytorium
+## 🚀 WAŻNE: Baza wiedzy jest w Supabase!
 
-Przy każdym nowym projekcie lub zadaniu, sprawdź najpierw to repozytorium:
+Zamiast przeszukiwać ten repo — używaj **bazy wiedzy w Supabase** która zawiera
+kompletną, aktualną wiedzę o całej infrastrukturze, błędach i rozwiązaniach.
 
-```bash
-# Sklonuj lub zaktualizuj lokalnie
-git clone https://github.com/szachmacik/manus-knowledge-base.git
-# lub
-git -C /home/ubuntu/manus-knowledge-base pull
+## Jak czytać (szybkie API — 0 tokenów na przeglądanie)
+
+```sql
+-- Spis treści:
+SELECT chapter, section, title, updated_at
+FROM ai_knowledge
+ORDER BY chapter, section;
+
+-- Cały rozdział o błędach:
+SELECT * FROM ai_read_knowledge('errors');
+
+-- O konkretnej aplikacji:
+SELECT * FROM ai_read_knowledge('apps', 'agentflow');
+
+-- Szukaj po tagach:
+SELECT chapter, section, title, content
+FROM ai_knowledge
+WHERE 'esbuild' = ANY(tags);
 ```
 
-Następnie przeszukaj odpowiedni katalog zanim zaczniesz pisać kod od zera.
+## Rozdziały bazy wiedzy
 
-## Struktura
+| Rozdział | Opis |
+|----------|------|
+| `meta` | Jak używać tej bazy |
+| `infrastructure` | Serwer, Coolify, Docker, UUIDs |
+| `apps` | Każda aplikacja — co robi, status, błędy |
+| `errors` | Konkretne błędy + rozwiązania |
+| `monitoring` | Watchdog, AutoHeal, SmokeTester |
+| `credentials` | Gdzie są tokeny (Vault) |
+| `telegram` | Bot Guardian |
+| `n8n` | Workflow automation |
 
-```
-manus-knowledge-base/
-├── README.md                    ← Ten plik — punkt startowy
-├── SECURITY.md                  ← Zasady bezpieczeństwa (co NIE trafia do repo)
-│
-├── patterns/                    ← Architektoniczne wzorce projektowe
-│   ├── backend/                 ← tRPC, Express, API design
-│   ├── frontend/                ← React, lazy loading, komponenty
-│   ├── security/                ← HMAC webhooks, auth, rate limiting
-│   ├── database/                ← Drizzle ORM, migracje, query patterns
-│   ├── ai/                      ← LLM integration, agents, prompts
-│   └── automation/              ← Cron jobs, sync engines, queues
-│
-├── snippets/                    ← Gotowe do użycia fragmenty kodu
-│   ├── typescript/              ← Utility types, helpers
-│   ├── drizzle/                 ← Schema patterns, query helpers
-│   ├── trpc/                    ← Router patterns, middleware
-│   ├── cron/                    ← Cron job templates
-│   ├── webhooks/                ← Webhook handlers z security
-│   ├── oauth/                   ← OAuth flows dla różnych platform
-│   └── mcp/                     ← MCP server templates
-│
-├── integrations/                ← Dokumentacja integracji
-│   ├── catalog/                 ← Opis każdej integracji (bez kluczy)
-│   └── configs/                 ← Przykładowe konfiguracje (z placeholderami)
-│
-├── projects/                    ← Rejestr wszystkich projektów
-│   ├── registry.md              ← Lista projektów z linkami i statusem
-│   └── [project-name].md        ← Karta każdego projektu
-│
-├── skills-registry/             ← Rejestr Manus Skills
-│   └── README.md                ← Lista aktywnych skills i ich zastosowanie
-│
-└── playbooks/                   ← Krok-po-kroku instrukcje dla powtarzalnych zadań
-    ├── new-project.md           ← Jak zacząć nowy projekt
-    ├── new-client.md            ← Jak dodać klienta do Integration Hub
-    ├── deploy-to-manus.md       ← Jak deployować na Manus Spaces
-    └── security-audit.md        ← Jak przeprowadzić audit bezpieczeństwa
+## Jak dopisywać wiedzę
+
+```python
+import requests
+
+r = requests.post(
+    "https://blgdhfcosqjzrutncbbr.supabase.co/rest/v1/rpc/ai_write_knowledge",
+    headers={
+        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZ2RoZmNvc3FqenJ1dG5jYmJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMjM2OTIsImV4cCI6MjA4Nzc5OTY5Mn0.LoCU2qthc6dzHAPl6BPWmy6LLOnDMjPR6ObvBR549Lc",
+        "Authorization": f"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZ2RoZmNvc3FqenJ1dG5jYmJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMjM2OTIsImV4cCI6MjA4Nzc5OTY5Mn0.LoCU2qthc6dzHAPl6BPWmy6LLOnDMjPR6ObvBR549Lc",
+        "Content-Type": "application/json"
+    },
+    json={
+        "p_chapter": "errors",
+        "p_section": "nazwa-błędu",
+        "p_title": "Krótki tytuł",
+        "p_content": "## Opis\n...markdown...",
+        "p_tags": ["tag1", "tag2"],
+        "p_author": "manus"
+    }
+)
+print(r.json())  # {"ok": true, "id": 42}
 ```
 
-## Zasada Cykliczna
+## Połączenie z Supabase
 
-**Każdy nowy projekt MUSI być zarejestrowany w `projects/registry.md`.**
-**Każdy nowy wzorzec odkryty w projekcie MUSI być dodany do `patterns/`.**
-**Każdy nowy snippet MUSI być dodany do `snippets/`.**
+- **URL:** `https://blgdhfcosqjzrutncbbr.supabase.co`
+- **Anon key:** w Vault: `supabase_anon_key`
+- **Projekt:** `blgdhfcosqjzrutncbbr` (Sentinel/ofshore monitoring)
 
-To repozytorium rośnie razem z projektami — jest żywym dokumentem.
+## Zasady dla AI
 
-## Projekty w Ekosystemie
+1. **Czytaj selektywnie** — pytaj o konkretny `chapter/section`, nie całość
+2. **Aktualizuj po naprawie** — każdy naprawiony błąd → wpis w `errors/`
+3. **ON CONFLICT = UPDATE** — nie tworzysz duplikatów, nadpisujesz
+4. **Autor** — zawsze podaj `p_author: 'manus'` lub `'claude'`
 
-| Projekt | Typ | Status | GitHub |
-|---|---|---|---|
-| **integration-hub** | SaaS Config Management | Active | [szachmacik/integration-hub](https://github.com/szachmacik/integration-hub) |
-| **ai-control-center** | AI Agent Dashboard | Active | [szachmacik/ai-control-center](https://github.com/szachmacik/ai-control-center) |
-| **polaris-track** | E-commerce Analytics | Active | [szachmacik/polaris-track](https://github.com/szachmacik/polaris-track) |
-| **educational-sales-site** | EdTech Platform | Active | [szachmacik/educational-sales-site](https://github.com/szachmacik/educational-sales-site) |
+---
 
-## Stack Technologiczny (Standard)
-
-Wszystkie projekty używają tego samego core stacku:
-
-| Warstwa | Technologia |
-|---|---|
-| Frontend | React 19, Tailwind 4, shadcn/ui, wouter |
-| Backend | Express 4, tRPC 11, Superjson |
-| Database | Drizzle ORM, MySQL/TiDB |
-| Auth | Manus OAuth (JWT, httpOnly cookies) |
-| Testing | Vitest |
-| Language | TypeScript 5.x |
-| Package manager | pnpm |
-
-## Bezpieczeństwo
-
-Patrz [SECURITY.md](./SECURITY.md) — lista tego co NIGDY nie trafia do tego repo.
+*Baza wiedzy zarządzana przez Claude i Manus. Ostatnia aktualizacja: 16 marca 2026.*
